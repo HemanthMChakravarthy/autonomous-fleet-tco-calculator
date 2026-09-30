@@ -45,9 +45,10 @@ COMPONENT_LABELS = {
 }
 
 
-# Keep preset defaults explicit and avoid mutating the original dataclass instance.
 def default_market_params(preset_name: str):
+    """Return base market assumptions for the selected preset."""
     if preset_name == "Custom":
+        st.sidebar.caption("Custom mode starts from Dubai defaults so you can calibrate a scenario.")
         return dubai_params()
     return {"Dubai": dubai_params(), "Singapore": singapore_params()}[preset_name]
 
@@ -110,28 +111,40 @@ p.infra_capex_per_vehicle = float(infra_capex)
 
 r, h = cost_breakdown(p)
 adv = h["total"] - r["total"]
-if abs(adv) < 1e-9:
-    winner = "Tie"
-    advantage_text = "Near tie"
-elif adv > 0:
-    winner = "Robotaxi"
-    advantage_text = f"{winner} wins"
-else:
-    winner = "Human-driven"
-    advantage_text = f"{winner} wins"
+adv_abs = abs(adv)
+adv_pct = (adv_abs / h["total"]) if h["total"] else 0.0
 
-adv_pct = (adv / h["total"]) if h["total"] else 0.0
+if abs(adv) < 1e-9:
+    decision_text = "The scenarios are effectively tied at the current assumptions."
+    delta_label = "Near tie"
+    metric_label = "Scenario gap"
+    metric_value = "$0.000/km"
+    alert_kind = "info"
+elif adv > 0:
+    decision_text = (
+        f"Robotaxi is cheaper by ${adv:.3f}/km ({adv_pct:.0%} lower cost than human-driven)."
+    )
+    delta_label = "Robotaxi wins"
+    metric_label = "Robotaxi advantage"
+    metric_value = f"${adv:.3f}/km"
+    alert_kind = "success"
+else:
+    decision_text = (
+        f"Human-driven is cheaper by ${-adv:.3f}/km ({adv_pct:.0%} lower cost than robotaxi)."
+    )
+    delta_label = "Human-driven wins"
+    metric_label = "Human-driven advantage"
+    metric_value = f"${-adv:.3f}/km"
+    alert_kind = "warning"
 
 c1, c2, c3 = st.columns(3)
 c1.metric("Robotaxi TCO/km", f"${r['total']:.3f}")
 c2.metric("Human-driven TCO/km", f"${h['total']:.3f}")
-c3.metric(
-    "Robotaxi advantage",
-    f"${adv:.3f}/km ({adv_pct:.0%})" if h["total"] else "n/a",
-    delta=advantage_text,
-)
+c3.metric(metric_label, metric_value, delta=delta_label)
 
-# Compact summary table to make the output easier to scan.
+st.markdown(f"<div style='padding: 0.5rem 0.75rem; border-left: 4px solid #7c3aed; background: #f5f3ff; border-radius: 6px;'>"
+            f"<strong>Decision:</strong> {decision_text}</div>", unsafe_allow_html=True)
+
 summary_df = pd.DataFrame(
     [
         {"Fleet": "Robotaxi", "TCO/km": r["total"]},
