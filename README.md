@@ -28,7 +28,64 @@ The app offers Dubai / Singapore / Custom presets with sliders for utilization, 
 
 **Model architecture** — inputs → cost components → TCO/km outputs → decisions:
 
-![Model architecture](assets/architecture.png)
+```mermaid
+flowchart LR
+    subgraph IN["Market inputs (Dubai / Singapore presets)"]
+        direction TB
+        U["Utilization<br/>km/day · service hrs/day"]
+        W["Driver wage<br/>$/hour"]
+        E["Energy tariff<br/>$/kWh · A/C heat penalty"]
+        V["Vehicle capex<br/>EV + autonomy stack + COE"]
+        B["Battery<br/>pack cost · fade rate"]
+    end
+
+    subgraph CC["Cost components (per km)"]
+        direction TB
+        A["Capex amortization<br/>(capital recovery, 8%)"]
+        EN["Energy"]
+        BD["Battery-degradation reserve"]
+        OP["Maintenance + insurance"]
+        FL["Fleet ops + infra<br/>(robotaxi only)"]
+        DR["Driver wages<br/>(human-driven only)"]
+    end
+
+    subgraph OUT["Model outputs"]
+        direction TB
+        R["Robotaxi TCO/km"]
+        H["Human-driven TCO/km"]
+        D["Advantage Δ $/km"]
+        BE["Breakeven wage ≈ $2/hr"]
+    end
+
+    subgraph DEC["Decisions"]
+        direction TB
+        M["Rank launch markets<br/>by labor arbitrage"]
+        X["Underwrite ops execution,<br/>not tech cost curves"]
+    end
+
+    U --> A
+    U --> FL
+    U --> DR
+    W --> DR
+    E --> EN
+    V --> A
+    B --> BD
+    A --> R
+    A --> H
+    EN --> R
+    EN --> H
+    BD --> R
+    BD --> H
+    OP --> R
+    OP --> H
+    FL --> R
+    DR --> H
+    R --> D
+    H --> D
+    D --> BE
+    D --> M
+    BE --> X
+```
 
 **TCO/km cost breakdown, Dubai vs Singapore:**
 
@@ -84,7 +141,7 @@ Driver wages alone are $0.514/km in Dubai (76% of human-driven TCO) and $1.16/km
 ├── src/tco_model.py        # Importable TCO model (dataclasses + functions)
 ├── notebooks/
 │   └── autonomous_fleet_tco.ipynb   # Fully executed analysis notebook
-├── assets/                 # Architecture diagram + charts
+├── assets/                 # Charts (matplotlib)
 ├── requirements.txt
 └── LICENSE                 # MIT
 ```
