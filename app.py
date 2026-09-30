@@ -530,19 +530,22 @@ with tab3:
             "Base Advantage": f"${base_adv:.3f}",
             "-30% Impact": f"${adv_lo:.3f}",
             "+30% Impact": f"${adv_hi:.3f}",
+            "Swing (numeric)": swing,
             "Swing": f"${swing:.3f}",
         })
     
-    sens_df = pd.DataFrame(sensitivity_results).sort_values("Swing", ascending=False, key=abs)
+    # Sort by numeric swing, then drop the helper column
+    sens_df = pd.DataFrame(sensitivity_results).sort_values("Swing (numeric)", ascending=False)
+    sens_df = sens_df.drop("Swing (numeric)", axis=1)
     st.dataframe(sens_df, use_container_width=True, hide_index=True)
     
     # Tornado chart
     fig, ax = create_styled_figure("Sensitivity Tornado: Impact on Robotaxi Advantage", figsize=(9, 5))
     
     labels = [r["Driver"] for r in sensitivity_results]
-    swings = [float(r["Swing"].replace("$", "")) for r in sensitivity_results]
+    swings = [r["Swing (numeric)"] for r in sensitivity_results]
     
-    sorted_idx = np.argsort(np.abs(swings))[::-1][:8]  # Top 8
+    sorted_idx = np.argsort(swings)[::-1][:8]  # Top 8
     labels_sorted = [labels[i] for i in sorted_idx]
     swings_sorted = [swings[i] for i in sorted_idx]
     
